@@ -49,6 +49,19 @@ def process_command(update: Update, context: CallbackContext, content_list: list
     else:
         update.message.reply_text("Only approved users and group administrators can use this command.")
 
+def start(update: Update, context: CallbackContext) -> None:
+    if update.message.chat.type == 'private':
+        # Handle start command in private messages differently
+        update.message.reply_text("Welcome! You can use commands like /sspam, /joke, /gana, /mspam, /dialogue, and /dialogues.")
+    else:
+        # Check if the user is a group administrator
+        if not is_group_admin(update):
+            update.message.reply_text("Only group administrators can start the bot in this group.")
+            return
+
+        # Bot logic for group start command
+        # ...
+
 def sspam(update: Update, context: CallbackContext) -> None:
     process_command(update, context, shayari_list, "Shayari")
 
@@ -75,10 +88,28 @@ def dialogue(update: Update, context: CallbackContext) -> None:
 def sstop(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
 
+def sapprove_command(update: Update, context: CallbackContext) -> None:
+    approving_admin = update.effective_user
+    user_to_approve = context.args[0] if context.args else None
+
+    # Check if the approving admin is a group administrator
+    if not is_group_admin(update):
+        update.message.reply_text("Only group administrators can approve users.")
+        return
+
+    if user_to_approve:
+        # Process approval logic and update approved_users dictionary
+        group_id = update.effective_chat.id
+        approved_users.setdefault(group_id, set()).add(user_to_approve)
+        update.message.reply_text(f"User {user_to_approve} has been approved for command usage.")
+    else:
+        update.message.reply_text("Please provide a user ID or username to approve.")
+
 def main() -> None:
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
 
     dp = updater.dispatcher
+    dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("sspam", sspam, pass_args=True))
     dp.add_handler(CommandHandler("joke", joke, pass_args=True))
     dp.add_handler(CommandHandler("gana", gana, pass_args=True))
@@ -86,6 +117,7 @@ def main() -> None:
     dp.add_handler(CommandHandler("dialogue", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("dialogues", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("sstop", sstop))
+    dp.add_handler(CommandHandler("sapprove", sapprove_command, pass_args=True))
 
     updater.start_polling()
     updater.idle()
