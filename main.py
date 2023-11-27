@@ -1,29 +1,15 @@
 from telegram import Update, ParseMode
-from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, CallbackContext
 from shayari import shayari_list
 from jokes import jokes_list
 from songs import songs_lyrics
 from love import love_shayari
+from dialogues import dialogue_list
 import random
 import os
 
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text(
-        "Welcome! I'm a bot that sends Shayari, song lyrics, jokes, and love Shayari. Made with ❤️ by @sasta_coder."
-        "\nUse /help to see all available commands."
-    )
-
-def help_command(update: Update, context: CallbackContext) -> None:
-    help_text = (
-        "Available commands:\n"
-        "/sspam <number> - Get random Shayari.\n"
-        "/joke <number> - Get random jokes.\n"
-        "/songs <song_name> - Get lyrics for a specific song.\n"
-        "/mspam <number> - Spam love Shayari or proposal type Shayari.\n"
-        "/alive - Check if the bot is alive and working.\n"
-        "/help - Display this help message."
-    )
-    update.message.reply_text(help_text)
+def format_message(content: str, category: str) -> str:
+    return f"🌟 *{category}*: {content} 🌟"
 
 def sspam(update: Update, context: CallbackContext) -> None:
     args = context.args
@@ -47,8 +33,9 @@ def sspam(update: Update, context: CallbackContext) -> None:
     else:
         selected_messages = random.sample(shayari_list, num_messages)
 
-    for message in selected_messages:
-        update.message.reply_text(message)
+    formatted_messages = [format_message(message, "Shayari") for message in selected_messages]
+    for formatted_message in formatted_messages:
+        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
 
 def joke(update: Update, context: CallbackContext) -> None:
     args = context.args
@@ -68,18 +55,20 @@ def joke(update: Update, context: CallbackContext) -> None:
     else:
         selected_jokes = random.sample(jokes_list, num_jokes)
 
-    for joke in selected_jokes:
-        update.message.reply_text(joke)
+    formatted_jokes = [format_message(joke, "Joke") for joke in selected_jokes]
+    for formatted_joke in formatted_jokes:
+        update.message.reply_text(formatted_joke, parse_mode=ParseMode.MARKDOWN)
 
-def songs(update: Update, context: CallbackContext) -> None:
+def gana(update: Update, context: CallbackContext) -> None:
     args = context.args
     if not args:
-        update.message.reply_text("Please provide a song name with the command. For example, `/songs song1`.")
+        update.message.reply_text("Please provide a song name with the command. For example, `/gana song1`.")
         return
 
     song_name = args[0].lower()
     song_lyrics = songs_lyrics.get(song_name, "Lyrics not available for this song.")
-    update.message.reply_text(song_lyrics)
+    formatted_song = format_message(song_lyrics, "Song")
+    update.message.reply_text(formatted_song, parse_mode=ParseMode.MARKDOWN)
 
 def mspam(update: Update, context: CallbackContext) -> None:
     args = context.args
@@ -103,27 +92,46 @@ def mspam(update: Update, context: CallbackContext) -> None:
     else:
         selected_messages = random.sample(love_shayari, num_messages)
 
-    for message in selected_messages:
-        update.message.reply_text(message)
+    formatted_love_shayari = [format_message(message, "Love Shayari") for message in selected_messages]
+    for formatted_message in formatted_love_shayari:
+        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
 
-def cancel(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Message delivery canceled. Type /sspam for Shayari, /joke for jokes, /songs for song lyrics, /mspam for love Shayari.")
+def dialogue(update: Update, context: CallbackContext) -> None:
+    args = context.args
+    if not args:
+        update.message.reply_text("Please use the command in the format `/dialogue` or `/dialogues`.")
+        return
 
-def alive(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("BOT IS ALIVE AND WORKING LIKE LION 🦁. AAKHIR BETA BHI TOH XYTRA KA HU AUR AMAN KA BHAI🙂", parse_mode=ParseMode.MARKDOWN)
+    num_dialogues = 1
+    try:
+        num_dialogues = int(args[0])
+    except ValueError:
+        update.message.reply_text("Please enter a valid number.")
+
+    total_dialogues = len(dialogue_list)
+    if num_dialogues >= total_dialogues:
+        selected_dialogues = dialogue_list * (num_dialogues // total_dialogues) + random.sample(dialogue_list, num_dialogues % total_dialogues)
+    else:
+        selected_dialogues = random.sample(dialogue_list, num_dialogues)
+
+    formatted_dialogues = [format_message(dialogue, "Dialogue") for dialogue in selected_dialogues]
+    for formatted_dialogue in formatted_dialogues:
+        update.message.reply_text(formatted_dialogue, parse_mode=ParseMode.MARKDOWN)
+
+def sstop(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
 
 def main() -> None:
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
 
     dp = updater.dispatcher
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("sspam", sspam, pass_args=True))
     dp.add_handler(CommandHandler("joke", joke, pass_args=True))
-    dp.add_handler(CommandHandler("songs", songs, pass_args=True))
+    dp.add_handler(CommandHandler("gana", gana, pass_args=True))
     dp.add_handler(CommandHandler("mspam", mspam, pass_args=True))
-    dp.add_handler(CommandHandler("cancel", cancel))
-    dp.add_handler(CommandHandler("alive", alive))
+    dp.add_handler(CommandHandler("dialogue", dialogue, pass_args=True))
+    dp.add_handler(CommandHandler("dialogues", dialogue, pass_args=True))
+    dp.add_handler(CommandHandler("sstop", sstop))
 
     updater.start_polling()
     updater.idle()
