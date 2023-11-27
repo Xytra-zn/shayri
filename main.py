@@ -1,12 +1,5 @@
 from telegram import Update, ParseMode
-from telegram import InputUser
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
-from shayari import shayari_list
-from jokes import jokes_list
-from songs import songs_lyrics
-from love import love_shayari
-from dialogues import dialogue_list
-import random
 import os
 
 approved_users = set()
