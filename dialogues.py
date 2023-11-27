@@ -38,8 +38,6 @@ dialogue_list = [
     "Don ko 11 mulkon ki police dundh rahi hai, lekin ek gyarah bheje ka bhi pata nahin laga.",
     "Mai udna chahta hoon, daudna chahta hoon, girna bhi chahta hoon ... bus rukna nahi chahta.",
     "Hum jahan khade hote hain, line wahi se shuru hoti hai.",
-    "Pushpa, I hate tears.
-    "Aaj ek pagal kutta bhi 100 baar bhonkega toh bhi Dhanraj ke ghar mein koi nahin aayega.",
     "Yeh duniya ek third class ka dibba hai, aur hum usmein first class ke passengers hain.",
     "Zindagi mein kuch banna ho, kuch haasil karna ho, kuch jeetna ho toh hamesha apne dil ki suno.",
     "Hum ek baar jeete hain, ek baar marte hain, shaadi bhi ek hi baar hoti hai, aur pyar... ek hi baar hota hai.",
