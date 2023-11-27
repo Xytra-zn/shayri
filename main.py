@@ -7,7 +7,6 @@ from love import love_shayari
 from dialogues import dialogue_list
 import random
 import os
-from telegram import InputUser
 
 # Dictionary to store approved users in groups
 approved_users = {}
@@ -48,7 +47,7 @@ def process_command(update: Update, context: CallbackContext, content_list: list
         for formatted_message in formatted_messages:
             update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
     else:
-        update.message.reply_text("Only approved users and group administrators can use this command here. You can use it in private message mode or ask admins to approve you by using /sapprove command")
+        update.message.reply_text("Only approved users and group administrators can use this command.")
 
 def start(update: Update, context: CallbackContext) -> None:
     if update.message.chat.type == 'private':
@@ -102,20 +101,25 @@ def sapprove_command(update: Update, context: CallbackContext) -> None:
         group_id = update.effective_chat.id
 
         if user_to_approve not in approved_users.get(group_id, []):
-            # Use Telegram API to get user information
-            user_info = context.bot.get_chat_member(group_id, user_to_approve).user
-            approved_users.setdefault(group_id, set()).add(user_to_approve)
-            update.message.reply_text(f"User {user_info.username} ({user_info.id}) has been approved for command usage.")
+            # Call the Telegram API to get user information
+            user_info = context.bot.get_chat_member(group_id, user_to_approve)
+            user_id = user_info.user.id
+            username = user_info.user.username
+
+            # Add the user to the approved list
+            approved_users.setdefault(group_id, []).append(user_id)
+            
+            update.message.reply_text(f"User {username} has been approved to use the commands.")
         else:
-            update.message.reply_text(f"User {user_to_approve} is already approved.")
+            update.message.reply_text("This user is already approved.")
     else:
-        update.message.reply_text("Please provide a user ID or username to approve.")
+        update.message.reply_text("Please provide a username or user ID to approve.")
 
 def sunapprove_command(update: Update, context: CallbackContext) -> None:
-    unapproving_admin = update.effective_user
+    approving_admin = update.effective_user
     user_to_unapprove = context.args[0] if context.args else None
 
-    # Check if the unapproving admin is a group administrator
+    # Check if the approving admin is a group administrator
     if not is_group_admin(update):
         update.message.reply_text("Only group administrators can unapprove users.")
         return
@@ -124,13 +128,14 @@ def sunapprove_command(update: Update, context: CallbackContext) -> None:
         group_id = update.effective_chat.id
 
         if user_to_unapprove in approved_users.get(group_id, []):
-            # Process unapproval logic and update approved_users dictionary
+            # Remove the user from the approved list
             approved_users[group_id].remove(user_to_unapprove)
-            update.message.reply_text(f"User {user_to_unapprove} has been unapproved.")
+            
+            update.message.reply_text("User has been unapproved.")
         else:
-            update.message.reply_text(f"User {user_to_unapprove} is not approved.")
+            update.message.reply_text("This user is not approved.")
     else:
-        update.message.reply_text("Please provide a user ID or username to unapprove.")
+        update.message.reply_text("Please provide a username or user ID to unapprove.")
 
 def main() -> None:
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
@@ -146,6 +151,9 @@ def main() -> None:
     dp.add_handler(CommandHandler("sstop", sstop))
     dp.add_handler(CommandHandler("sapprove", sapprove_command, pass_args=True))
     dp.add_handler(CommandHandler("sunapprove", sunapprove_command, pass_args=True))
+
+    # Handle private messages to start the bot
+    dp.add_handler(MessageHandler(Filters.private & ~Filters.command, start))
 
     updater.start_polling()
     updater.idle()
