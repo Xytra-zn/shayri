@@ -1,5 +1,5 @@
 from telegram import Update, ParseMode
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
 from shayari import shayari_list
 from jokes import jokes_list
 from songs import songs_lyrics
@@ -8,56 +8,52 @@ from dialogues import dialogue_list
 import random
 import os
 
+# Dictionary to store approved users in groups
+approved_users = {}
+
 def format_message(content: str, category: str) -> str:
     return f"🌟 *{category}*: {content} 🌟"
 
-def sspam(update: Update, context: CallbackContext) -> None:
-    args = context.args
-    if not args:
-        update.message.reply_text("Please use the command in the format `/sspam <number>`.")
-        return
+def is_group_admin(update: Update) -> bool:
+    user_id = update.effective_user.id
+    return update.effective_chat.get_member(user_id).status in ['administrator', 'creator']
 
-    try:
-        num_messages = int(args[0])
-    except ValueError:
-        update.message.reply_text("Please enter a valid number.")
-        return
+def process_command(update: Update, context: CallbackContext, content_list: list, category: str) -> None:
+    user_id = update.effective_user.id
 
-    if num_messages <= 0:
-        update.message.reply_text("Please enter a positive number.")
-        return
+    if user_id in approved_users.get(update.effective_chat.id, []) or is_group_admin(update):
+        args = context.args
+        if not args:
+            update.message.reply_text(f"Please use the command in the format `/{category} <number>`.")
+            return
 
-    total_messages = len(shayari_list)
-    if num_messages >= total_messages:
-        selected_messages = shayari_list * (num_messages // total_messages) + random.sample(shayari_list, num_messages % total_messages)
+        try:
+            num_items = int(args[0])
+        except ValueError:
+            update.message.reply_text("Please enter a valid number.")
+            return
+
+        if num_items <= 0:
+            update.message.reply_text("Please enter a positive number.")
+            return
+
+        total_items = len(content_list)
+        if num_items >= total_items:
+            selected_items = content_list * (num_items // total_items) + random.sample(content_list, num_items % total_items)
+        else:
+            selected_items = random.sample(content_list, num_items)
+
+        formatted_messages = [format_message(item, category) for item in selected_items]
+        for formatted_message in formatted_messages:
+            update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
     else:
-        selected_messages = random.sample(shayari_list, num_messages)
+        update.message.reply_text("Only approved users and group administrators can use this command.")
 
-    formatted_messages = [format_message(message, "Shayari") for message in selected_messages]
-    for formatted_message in formatted_messages:
-        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
+def sspam(update: Update, context: CallbackContext) -> None:
+    process_command(update, context, shayari_list, "Shayari")
 
 def joke(update: Update, context: CallbackContext) -> None:
-    args = context.args
-    if not args:
-        update.message.reply_text("Please use the command in the format `/joke <number>`.")
-        return
-
-    num_jokes = 1
-    try:
-        num_jokes = int(args[0])
-    except ValueError:
-        update.message.reply_text("Please enter a valid number.")
-
-    total_jokes = len(jokes_list)
-    if num_jokes >= total_jokes:
-        selected_jokes = jokes_list * (num_jokes // total_jokes) + random.sample(jokes_list, num_jokes % total_jokes)
-    else:
-        selected_jokes = random.sample(jokes_list, num_jokes)
-
-    formatted_jokes = [format_message(joke, "Joke") for joke in selected_jokes]
-    for formatted_joke in formatted_jokes:
-        update.message.reply_text(formatted_joke, parse_mode=ParseMode.MARKDOWN)
+    process_command(update, context, jokes_list, "Joke")
 
 def gana(update: Update, context: CallbackContext) -> None:
     args = context.args
@@ -71,52 +67,10 @@ def gana(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(formatted_song, parse_mode=ParseMode.MARKDOWN)
 
 def mspam(update: Update, context: CallbackContext) -> None:
-    args = context.args
-    if not args:
-        update.message.reply_text("Please use the command in the format `/mspam <number>`.")
-        return
-
-    try:
-        num_messages = int(args[0])
-    except ValueError:
-        update.message.reply_text("Please enter a valid number.")
-        return
-
-    if num_messages <= 0:
-        update.message.reply_text("Please enter a positive number.")
-        return
-
-    total_messages = len(love_shayari)
-    if num_messages >= total_messages:
-        selected_messages = love_shayari * (num_messages // total_messages) + random.sample(love_shayari, num_messages % total_messages)
-    else:
-        selected_messages = random.sample(love_shayari, num_messages)
-
-    formatted_love_shayari = [format_message(message, "Love Shayari") for message in selected_messages]
-    for formatted_message in formatted_love_shayari:
-        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
+    process_command(update, context, love_shayari, "Love Shayari")
 
 def dialogue(update: Update, context: CallbackContext) -> None:
-    args = context.args
-    if not args:
-        update.message.reply_text("Please use the command in the format `/dialogue` or `/dialogues`.")
-        return
-
-    num_dialogues = 1
-    try:
-        num_dialogues = int(args[0])
-    except ValueError:
-        update.message.reply_text("Please enter a valid number.")
-
-    total_dialogues = len(dialogue_list)
-    if num_dialogues >= total_dialogues:
-        selected_dialogues = dialogue_list * (num_dialogues // total_dialogues) + random.sample(dialogue_list, num_dialogues % total_dialogues)
-    else:
-        selected_dialogues = random.sample(dialogue_list, num_dialogues)
-
-    formatted_dialogues = [format_message(dialogue, "Dialogue") for dialogue in selected_dialogues]
-    for formatted_dialogue in formatted_dialogues:
-        update.message.reply_text(formatted_dialogue, parse_mode=ParseMode.MARKDOWN)
+    process_command(update, context, dialogue_list, "Dialogue")
 
 def sstop(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
@@ -138,3 +92,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+```
