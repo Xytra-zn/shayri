@@ -8,10 +8,15 @@ from dialogues import dialogue_list
 import random
 import os
 
+# Variable to keep track of the spamming process
+spamming_process = None
+
 def format_message(content: str, category: str) -> str:
     return f"🌟 *{category}*: {content} 🌟"
 
 def sspam(update: Update, context: CallbackContext) -> None:
+    global spamming_process
+
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/sspam <number>`.")
@@ -37,7 +42,11 @@ def sspam(update: Update, context: CallbackContext) -> None:
     for formatted_message in formatted_messages:
         update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
 
+    spamming_process = None  # Reset the spamming process after completion
+
 def joke(update: Update, context: CallbackContext) -> None:
+    global spamming_process
+
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/joke <number>`.")
@@ -59,6 +68,8 @@ def joke(update: Update, context: CallbackContext) -> None:
     for formatted_joke in formatted_jokes:
         update.message.reply_text(formatted_joke, parse_mode=ParseMode.MARKDOWN)
 
+    spamming_process = None  # Reset the spamming process after completion
+
 def gana(update: Update, context: CallbackContext) -> None:
     args = context.args
     if not args:
@@ -71,6 +82,8 @@ def gana(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(formatted_song, parse_mode=ParseMode.MARKDOWN)
 
 def mspam(update: Update, context: CallbackContext) -> None:
+    global spamming_process
+
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/mspam <number>`.")
@@ -96,7 +109,11 @@ def mspam(update: Update, context: CallbackContext) -> None:
     for formatted_message in formatted_love_shayari:
         update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
 
+    spamming_process = None  # Reset the spamming process after completion
+
 def dialogue(update: Update, context: CallbackContext) -> None:
+    global spamming_process
+
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/dialogue` or `/dialogues`.")
@@ -118,10 +135,20 @@ def dialogue(update: Update, context: CallbackContext) -> None:
     for formatted_dialogue in formatted_dialogues:
         update.message.reply_text(formatted_dialogue, parse_mode=ParseMode.MARKDOWN)
 
+    spamming_process = None  # Reset the spamming process after completion
+
 def sstop(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
+    global spamming_process
+
+    if spamming_process:
+        spamming_process.stop()
+        update.message.reply_text("🛑 Spamming process stopped. 🛑", parse_mode=ParseMode.MARKDOWN)
+    else:
+        update.message.reply_text("No active spamming process.", parse_mode=ParseMode.MARKDOWN)
 
 def main() -> None:
+    global spamming_process
+
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
 
     dp = updater.dispatcher
