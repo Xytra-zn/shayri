@@ -20,8 +20,9 @@ def is_group_admin(update: Update) -> bool:
 
 def process_command(update: Update, context: CallbackContext, content_list: list, category: str) -> None:
     user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
 
-    if user_id in approved_users.get(update.effective_chat.id, []) or is_group_admin(update) or update.message.chat.type == 'private':
+    if user_id in approved_users.get(chat_id, []) or is_group_admin(update) or update.message.chat.type == 'private':
         args = context.args
         if not args:
             update.message.reply_text(f"Please use the command in the format `/{category} <number>`.")
@@ -86,7 +87,13 @@ def dialogue(update: Update, context: CallbackContext) -> None:
     process_command(update, context, dialogue_list, "Dialogue")
 
 def sstop(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    if user_id in approved_users.get(chat_id, []) or is_group_admin(update):
+        update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
+    else:
+        update.message.reply_text("Only approved users and group administrators can use this command.")
 
 def sapprove_command(update: Update, context: CallbackContext) -> None:
     approving_admin = update.effective_user
@@ -98,16 +105,16 @@ def sapprove_command(update: Update, context: CallbackContext) -> None:
         return
 
     if user_to_approve:
-        group_id = update.effective_chat.id
+        chat_id = update.effective_chat.id
 
-        if user_to_approve not in approved_users.get(group_id, []):
+        if user_to_approve not in approved_users.get(chat_id, []):
             # Call the Telegram API to get user information
-            user_info = context.bot.get_chat_member(group_id, user_to_approve)
+            user_info = context.bot.get_chat_member(chat_id, user_to_approve)
             user_id = user_info.user.id
             username = user_info.user.username
 
             # Add the user to the approved list
-            approved_users.setdefault(group_id, []).append(user_id)
+            approved_users.setdefault(chat_id, []).append(user_id)
             
             update.message.reply_text(f"User {username} has been approved to use the commands.")
         else:
@@ -125,11 +132,11 @@ def sunapprove_command(update: Update, context: CallbackContext) -> None:
         return
 
     if user_to_unapprove:
-        group_id = update.effective_chat.id
+        chat_id = update.effective_chat.id
 
-        if user_to_unapprove in approved_users.get(group_id, []):
+        if user_to_unapprove in approved_users.get(chat_id, []):
             # Remove the user from the approved list
-            approved_users[group_id].remove(user_to_unapprove)
+            approved_users[chat_id].remove(user_to_unapprove)
             
             update.message.reply_text("User has been unapproved.")
         else:
