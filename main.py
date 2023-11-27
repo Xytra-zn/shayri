@@ -1,4 +1,4 @@
-from telegram import Update, ParseMode
+from telegram import Update, ParseMode, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
 from shayari import shayari_list
 from jokes import jokes_list
@@ -7,6 +7,7 @@ from love import love_shayari
 from dialogues import dialogue_list
 import random
 import os
+from telegram import InputUser
 
 # Dictionary to store approved users in groups
 approved_users = {}
@@ -101,9 +102,10 @@ def sapprove_command(update: Update, context: CallbackContext) -> None:
         group_id = update.effective_chat.id
 
         if user_to_approve not in approved_users.get(group_id, []):
-            # Process approval logic and update approved_users dictionary
+            # Use Telegram API to get user information
+            user_info = context.bot.get_chat_member(group_id, user_to_approve).user
             approved_users.setdefault(group_id, set()).add(user_to_approve)
-            update.message.reply_text(f"User {user_to_approve} has been approved for command usage.")
+            update.message.reply_text(f"User {user_info.username} ({user_info.id}) has been approved for command usage.")
         else:
             update.message.reply_text(f"User {user_to_approve} is already approved.")
     else:
