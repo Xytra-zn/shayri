@@ -1,4 +1,4 @@
-from telegram import Update, ParseMode
+from telegram import Update, ParseMode, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
 from shayari import shayari_list
 from jokes import jokes_list
@@ -103,16 +103,11 @@ def sapprove_command(update: Update, context: CallbackContext) -> None:
         if user_to_approve not in approved_users.get(group_id, []):
             # Call the Telegram API to get user information
             user_info = context.bot.get_chat_member(group_id, user_to_approve)
-            
-            if user_info.status == 'left':
-                update.message.reply_text("This user has left the group and cannot be approved.")
-                return
-
             user_id = user_info.user.id
             username = user_info.user.username
 
             # Add the user to the approved list
-            approved_users.setdefault(group_id, []).append(user_to_approve)
+            approved_users.setdefault(group_id, []).append(user_id)
             
             update.message.reply_text(f"User {username} has been approved to use the commands.")
         else:
@@ -165,4 +160,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
