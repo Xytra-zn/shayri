@@ -1,4 +1,4 @@
-from telegram import Update, ParseMode, User
+from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
 from shayari import shayari_list
 from jokes import jokes_list
@@ -141,7 +141,7 @@ def main() -> None:
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
 
     dp = updater.dispatcher
-    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("gptstart", start))
     dp.add_handler(CommandHandler("sspam", sspam, pass_args=True))
     dp.add_handler(CommandHandler("joke", joke, pass_args=True))
     dp.add_handler(CommandHandler("gana", gana, pass_args=True))
@@ -149,8 +149,8 @@ def main() -> None:
     dp.add_handler(CommandHandler("dialogue", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("dialogues", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("sstop", sstop))
-    dp.add_handler(CommandHandler("sapprove", sapprove_command, pass_args=True))
-    dp.add_handler(CommandHandler("sunapprove", sunapprove_command, pass_args=True))
+    dp.add_handler(CommandHandler("permit", sapprove_command, pass_args=True))
+    dp.add_handler(CommandHandler("rmpermit", sunapprove_command, pass_args=True))
 
     # Handle private messages to start the bot
     dp.add_handler(MessageHandler(Filters.private & ~Filters.command, start))
@@ -160,4 +160,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
