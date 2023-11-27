@@ -47,7 +47,7 @@ def process_command(update: Update, context: CallbackContext, content_list: list
         for formatted_message in formatted_messages:
             update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
     else:
-        update.message.reply_text("Only approved users and group administrators can use this command.")
+        update.message.reply_text("Only approved users and group administrators can use this command here. You can use it in private message mode or ask admins to approve you by using /sapprove command")
 
 def start(update: Update, context: CallbackContext) -> None:
     if update.message.chat.type == 'private':
