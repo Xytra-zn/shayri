@@ -8,28 +8,60 @@ from dialogues import dialogue_list
 import random
 import os
 
-approved_users = {}
+approved_users = set()
 
 def format_message(content: str, category: str) -> str:
     return f"🌟 *{category}*: {content} 🌟"
 
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Welcome to the Shayari Bot! Type /gpthelp to see all available commands.")
-
-def is_group_admin(update: Update) -> bool:
-    # Check if the user sending the message is a group admin
-    user = update.effective_user
-    chat = update.effective_chat
-    return chat.get_member(user.id).status in ('administrator', 'creator')
-
 def sspam(update: Update, context: CallbackContext) -> None:
-    # Your existing sspam code
+    args = context.args
+    if not args:
+        update.message.reply_text("Please use the command in the format `/sspam <number>`.")
+        return
+
+    try:
+        num_messages = int(args[0])
+    except ValueError:
+        update.message.reply_text("Please enter a valid number.")
+        return
+
+    if num_messages <= 0:
+        update.message.reply_text("Please enter a positive number.")
+        return
+
+    total_messages = len(shayari_list)
+    if num_messages >= total_messages:
+        selected_messages = shayari_list * (num_messages // total_messages) + random.sample(shayari_list, num_messages % total_messages)
+    else:
+        selected_messages = random.sample(shayari_list, num_messages)
+
+    formatted_messages = [format_message(message, "Shayari") for message in selected_messages]
+    for formatted_message in formatted_messages:
+        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
 
 def joke(update: Update, context: CallbackContext) -> None:
-    # Your existing joke code
+    args = context.args
+    if not args:
+        update.message.reply_text("Please use the command in the format `/joke <number>`.")
+        return
+
+    num_jokes = 1
+    try:
+        num_jokes = int(args[0])
+    except ValueError:
+        update.message.reply_text("Please enter a valid number.")
+
+    total_jokes = len(jokes_list)
+    if num_jokes >= total_jokes:
+        selected_jokes = jokes_list * (num_jokes // total_jokes) + random.sample(jokes_list, num_jokes % total_jokes)
+    else:
+        selected_jokes = random.sample(jokes_list, num_jokes)
+
+    formatted_jokes = [format_message(joke, "Joke") for joke in selected_jokes]
+    for formatted_joke in formatted_jokes:
+        update.message.reply_text(formatted_joke, parse_mode=ParseMode.MARKDOWN)
 
 def gana(update: Update, context: CallbackContext) -> None:
-    # Modify the gana command to use the song name
     args = context.args
     if not args:
         update.message.reply_text("Please provide a song name with the command. For example, `/gana song1`.")
@@ -41,95 +73,97 @@ def gana(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(formatted_song, parse_mode=ParseMode.MARKDOWN)
 
 def mspam(update: Update, context: CallbackContext) -> None:
-    # Your existing mspam code
+    args = context.args
+    if not args:
+        update.message.reply_text("Please use the command in the format `/mspam <number>`.")
+        return
+
+    try:
+        num_messages = int(args[0])
+    except ValueError:
+        update.message.reply_text("Please enter a valid number.")
+        return
+
+    if num_messages <= 0:
+        update.message.reply_text("Please enter a positive number.")
+        return
+
+    total_messages = len(love_shayari)
+    if num_messages >= total_messages:
+        selected_messages = love_shayari * (num_messages // total_messages) + random.sample(love_shayari, num_messages % total_messages)
+    else:
+        selected_messages = random.sample(love_shayari, num_messages)
+
+    formatted_love_shayari = [format_message(message, "Love Shayari") for message in selected_messages]
+    for formatted_message in formatted_love_shayari:
+        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
 
 def dialogue(update: Update, context: CallbackContext) -> None:
-    # Your existing dialogue code
+    args = context.args
+    if not args:
+        update.message.reply_text("Please use the command in the format `/dialogue` or `/dialogues`.")
+        return
+
+    num_dialogues = 1
+    try:
+        num_dialogues = int(args[0])
+    except ValueError:
+        update.message.reply_text("Please enter a valid number.")
+
+    total_dialogues = len(dialogue_list)
+    if num_dialogues >= total_dialogues:
+        selected_dialogues = dialogue_list * (num_dialogues // total_dialogues) + random.sample(dialogue_list, num_dialogues % total_dialogues)
+    else:
+        selected_dialogues = random.sample(dialogue_list, num_dialogues)
+
+    formatted_dialogues = [format_message(dialogue, "Dialogue") for dialogue in selected_dialogues]
+    for formatted_dialogue in formatted_dialogues:
+        update.message.reply_text(formatted_dialogue, parse_mode=ParseMode.MARKDOWN)
 
 def sstop(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
 
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text("🌟 Welcome! I am your Shayari Bot. Type /gptstart to begin. 🌟", parse_mode=ParseMode.MARKDOWN)
+
 def permit(update: Update, context: CallbackContext) -> None:
-    # Your existing sapprove command code with modifications
-    approving_admin = update.effective_user
-    user_to_approve = context.args[0] if context.args else None
-
-    # Check if the approving admin is a group administrator
-    if not is_group_admin(update):
-        update.message.reply_text("Only group administrators can approve users.")
-        return
-
-    if user_to_approve:
-        group_id = update.effective_chat.id
-
-        if user_to_approve not in approved_users.get(group_id, []):
-            # Call the Telegram API to get user information
-            user_info = context.bot.get_chat_member(group_id, user_to_approve)
-            user_id = user_info.user.id
-            username = user_info.user.username
-
-            # Add the user to the approved list
-            approved_users.setdefault(group_id, []).append(user_id)
-
-            update.message.reply_text(f"User {username} has been approved to use the commands.")
-        else:
-            update.message.reply_text("This user is already approved.")
-    else:
-        update.message.reply_text("Please provide a username or user ID to approve.")
+    user_id = update.message.reply_to_message.from_user.id
+    approved_users.add(user_id)
+    update.message.reply_text(f"✅ User {user_id} approved to use the bot!")
 
 def rmpermit(update: Update, context: CallbackContext) -> None:
-    # Your existing sunapprove command code with modifications
-    approving_admin = update.effective_user
-    user_to_unapprove = context.args[0] if context.args else None
-
-    # Check if the approving admin is a group administrator
-    if not is_group_admin(update):
-        update.message.reply_text("Only group administrators can unapprove users.")
-        return
-
-    if user_to_unapprove:
-        group_id = update.effective_chat.id
-
-        if user_to_unapprove in approved_users.get(group_id, []):
-            # Remove the user from the approved list
-            approved_users[group_id].remove(user_to_unapprove)
-
-            update.message.reply_text("User has been unapproved.")
-        else:
-            update.message.reply_text("This user is not approved.")
+    user_id = update.message.reply_to_message.from_user.id
+    if user_id in approved_users:
+        approved_users.remove(user_id)
+        update.message.reply_text(f"🚫 User {user_id} unapproved. They can no longer use the bot.")
     else:
-        update.message.reply_text("Please provide a username or user ID to unapprove.")
+        update.message.reply_text("🚫 This user is not approved.")
 
 def gpthelp(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Here are the available commands:\n"
-                              "/gptstart - Start the bot\n"
-                              "/sspam <number> - Get Shayari\n"
-                              "/joke <number> - Get Jokes\n"
-                              "/gana <song_name> - Get Song Lyrics\n"
-                              "/mspam <number> - Get Love Shayari\n"
-                              "/dialogue <number> - Get Dialogues\n"
-                              "/sstop - Stop spamming process\n"
-                              "/permit <username or user ID> - Approve a user to use commands\n"
-                              "/rmpermit <username or user ID> - Unapprove a user\n"
+    update.message.reply_text("🌟 *Commands:* 🌟\n"
+                              "/sspam <number> - Get a random number of Shayari messages\n"
+                              "/joke <number> - Get a random number of Jokes\n"
+                              "/gana <song_name> - Get lyrics for a specific song\n"
+                              "/mspam <number> - Get a random number of Love Shayari\n"
+                              "/dialogue <number> - Get a random number of Dialogues\n"
+                              "/sstop - Stop the spamming process\n"
                               "/gpthelp - Show this help message")
 
 def main() -> None:
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
 
     dp = updater.dispatcher
-    dp.add_handler(CommandHandler("gptstart", start))
     dp.add_handler(CommandHandler("sspam", sspam, pass_args=True))
     dp.add_handler(CommandHandler("joke", joke, pass_args=True))
     dp.add_handler(CommandHandler("gana", gana, pass_args=True))
     dp.add_handler(CommandHandler("mspam", mspam, pass_args=True))
     dp.add_handler(CommandHandler("dialogue", dialogue, pass_args=True))
+    dp.add_handler(CommandHandler("dialogues", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("sstop", sstop))
-    dp.add_handler(CommandHandler("permit", permit, pass_args=True))
-    dp.add_handler(CommandHandler("rmpermit", rmpermit, pass_args=True))
+    dp.add_handler(CommandHandler("gptstart", start))
+    dp.add_handler(CommandHandler("permit", permit))
+    dp.add_handler(CommandHandler("rmpermit", rmpermit))
     dp.add_handler(CommandHandler("gpthelp", gpthelp))
-
-    # Handle private messages to start the bot
-    dp.add_handler(MessageHandler(Filters.private & ~Filters.command, start))
 
     updater.start_polling()
     updater.idle()
