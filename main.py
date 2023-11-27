@@ -21,7 +21,7 @@ def is_group_admin(update: Update) -> bool:
 def process_command(update: Update, context: CallbackContext, content_list: list, category: str) -> None:
     user_id = update.effective_user.id
 
-    if user_id in approved_users.get(update.effective_chat.id, []) or is_group_admin(update):
+    if user_id in approved_users.get(update.effective_chat.id, []) or is_group_admin(update) or update.message.chat.type == 'private':
         args = context.args
         if not args:
             update.message.reply_text(f"Please use the command in the format `/{category} <number>`.")
@@ -47,12 +47,12 @@ def process_command(update: Update, context: CallbackContext, content_list: list
         for formatted_message in formatted_messages:
             update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
     else:
-        update.message.reply_text("Only approved users and group administrators can use this command here. You can use it in private message mode or ask admins to approve you by using /sapprove command")
+        update.message.reply_text("Only approved users and group administrators can use this command.")
 
 def start(update: Update, context: CallbackContext) -> None:
     if update.message.chat.type == 'private':
         # Handle start command in private messages differently
-        update.message.reply_text("Welcome! You can use commands like /sspam, /joke, /gana, /mspam and /dialogue.")
+        update.message.reply_text("Welcome! You can use commands like /sspam, /joke, /gana, /mspam, /dialogue, and /dialogues.")
     else:
         # Check if the user is a group administrator
         if not is_group_admin(update):
@@ -98,12 +98,37 @@ def sapprove_command(update: Update, context: CallbackContext) -> None:
         return
 
     if user_to_approve:
-        # Process approval logic and update approved_users dictionary
         group_id = update.effective_chat.id
-        approved_users.setdefault(group_id, set()).add(user_to_approve)
-        update.message.reply_text(f"User {user_to_approve} has been approved for command usage.")
+
+        if user_to_approve not in approved_users.get(group_id, []):
+            # Process approval logic and update approved_users dictionary
+            approved_users.setdefault(group_id, set()).add(user_to_approve)
+            update.message.reply_text(f"User {user_to_approve} has been approved for command usage.")
+        else:
+            update.message.reply_text(f"User {user_to_approve} is already approved.")
     else:
         update.message.reply_text("Please provide a user ID or username to approve.")
+
+def sunapprove_command(update: Update, context: CallbackContext) -> None:
+    unapproving_admin = update.effective_user
+    user_to_unapprove = context.args[0] if context.args else None
+
+    # Check if the unapproving admin is a group administrator
+    if not is_group_admin(update):
+        update.message.reply_text("Only group administrators can unapprove users.")
+        return
+
+    if user_to_unapprove:
+        group_id = update.effective_chat.id
+
+        if user_to_unapprove in approved_users.get(group_id, []):
+            # Process unapproval logic and update approved_users dictionary
+            approved_users[group_id].remove(user_to_unapprove)
+            update.message.reply_text(f"User {user_to_unapprove} has been unapproved.")
+        else:
+            update.message.reply_text(f"User {user_to_unapprove} is not approved.")
+    else:
+        update.message.reply_text("Please provide a user ID or username to unapprove.")
 
 def main() -> None:
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
@@ -118,6 +143,7 @@ def main() -> None:
     dp.add_handler(CommandHandler("dialogues", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("sstop", sstop))
     dp.add_handler(CommandHandler("sapprove", sapprove_command, pass_args=True))
+    dp.add_handler(CommandHandler("sunapprove", sunapprove_command, pass_args=True))
 
     updater.start_polling()
     updater.idle()
