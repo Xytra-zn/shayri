@@ -1,4 +1,4 @@
-from telegram import Update, ParseMode, User
+from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
 from shayari import shayari_list
 from jokes import jokes_list
@@ -20,9 +20,8 @@ def is_group_admin(update: Update) -> bool:
 
 def process_command(update: Update, context: CallbackContext, content_list: list, category: str) -> None:
     user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
-    if user_id in approved_users.get(chat_id, []) or is_group_admin(update) or update.message.chat.type == 'private':
+    if user_id in approved_users.get(update.effective_chat.id, []) or is_group_admin(update) or update.message.chat.type == 'private':
         args = context.args
         if not args:
             update.message.reply_text(f"Please use the command in the format `/{category} <number>`.")
@@ -87,68 +86,13 @@ def dialogue(update: Update, context: CallbackContext) -> None:
     process_command(update, context, dialogue_list, "Dialogue")
 
 def sstop(update: Update, context: CallbackContext) -> None:
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-
-    if user_id in approved_users.get(chat_id, []) or is_group_admin(update):
-        update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
-    else:
-        update.message.reply_text("Only approved users and group administrators can use this command.")
-
-def sapprove_command(update: Update, context: CallbackContext) -> None:
-    approving_admin = update.effective_user
-    user_to_approve = context.args[0] if context.args else None
-
-    # Check if the approving admin is a group administrator
-    if not is_group_admin(update):
-        update.message.reply_text("Only group administrators can approve users.")
-        return
-
-    if user_to_approve:
-        chat_id = update.effective_chat.id
-
-        if user_to_approve not in approved_users.get(chat_id, []):
-            # Call the Telegram API to get user information
-            user_info = context.bot.get_chat_member(chat_id, user_to_approve)
-            user_id = user_info.user.id
-            username = user_info.user.username
-
-            # Add the user to the approved list
-            approved_users.setdefault(chat_id, []).append(user_id)
-            
-            update.message.reply_text(f"User {username} has been approved to use the commands.")
-        else:
-            update.message.reply_text("This user is already approved.")
-    else:
-        update.message.reply_text("Please provide a username or user ID to approve.")
-
-def sunapprove_command(update: Update, context: CallbackContext) -> None:
-    approving_admin = update.effective_user
-    user_to_unapprove = context.args[0] if context.args else None
-
-    # Check if the approving admin is a group administrator
-    if not is_group_admin(update):
-        update.message.reply_text("Only group administrators can unapprove users.")
-        return
-
-    if user_to_unapprove:
-        chat_id = update.effective_chat.id
-
-        if user_to_unapprove in approved_users.get(chat_id, []):
-            # Remove the user from the approved list
-            approved_users[chat_id].remove(user_to_unapprove)
-            
-            update.message.reply_text("User has been unapproved.")
-        else:
-            update.message.reply_text("This user is not approved.")
-    else:
-        update.message.reply_text("Please provide a username or user ID to unapprove.")
+    update.message.reply_text("🛑 Spamming process stopped. Type /sspam for Shayari, /joke for jokes, /gana for song lyrics, /mspam for love Shayari, /dialogue for dialogues. 🛑", parse_mode=ParseMode.MARKDOWN)
 
 def main() -> None:
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
 
     dp = updater.dispatcher
-    dp.add_handler(CommandHandler("gptstart", start))
+    dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("sspam", sspam, pass_args=True))
     dp.add_handler(CommandHandler("joke", joke, pass_args=True))
     dp.add_handler(CommandHandler("gana", gana, pass_args=True))
@@ -156,11 +100,9 @@ def main() -> None:
     dp.add_handler(CommandHandler("dialogue", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("dialogues", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("sstop", sstop))
-    dp.add_handler(CommandHandler("permit", sapprove_command, pass_args=True))
-    dp.add_handler(CommandHandler("rmpermit", sunapprove_command, pass_args=True))
 
     # Handle private messages to start the bot
-    dp.add_handler(MessageHandler(Filters.private & ~Filters.command, start))
+    dp.add_handler(MessageHandler(Filters.chat_type.private & ~Filters.command, start))
 
     updater.start_polling()
     updater.idle()
