@@ -1,5 +1,5 @@
 from telegram import Update, ParseMode
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
 from shayari import shayari_list
 from jokes import jokes_list
 from songs import songs_lyrics
@@ -7,6 +7,7 @@ from love import love_shayari
 from dialogues import dialogue_list
 import random
 import os
+import threading
 
 # Variable to keep track of the spamming process
 spamming_process = None
@@ -14,9 +15,13 @@ spamming_process = None
 def format_message(content: str, category: str) -> str:
     return f"🌟 *{category}*: {content} 🌟"
 
-def sspam(update: Update, context: CallbackContext) -> None:
-    global spamming_process
+def spam_messages(update: Update, context: CallbackContext, content_list: list, category: str, num_messages: int) -> None:
+    for _ in range(num_messages):
+        selected_message = random.choice(content_list)
+        formatted_message = format_message(selected_message, category)
+        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
 
+def sspam(update: Update, context: CallbackContext) -> None:
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/sspam <number>`.")
@@ -32,21 +37,23 @@ def sspam(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Please enter a positive number.")
         return
 
-    total_messages = len(shayari_list)
-    if num_messages >= total_messages:
-        selected_messages = shayari_list * (num_messages // total_messages) + random.sample(shayari_list, num_messages % total_messages)
+    global spamming_process
+    if spamming_process and spamming_process.is_alive():
+        update.message.reply_text("Spamming process is already running. Use `/sstop` to stop the current process.")
+        return
+
+    spamming_process = threading.Thread(target=spam_messages, args=(update, context, shayari_list, "Shayari", num_messages))
+    spamming_process.start()
+
+def stop_spamming(update: Update, context: CallbackContext) -> None:
+    global spamming_process
+    if spamming_process and spamming_process.is_alive():
+        spamming_process.join()
+        update.message.reply_text("🛑 Spamming process stopped. 🛑", parse_mode=ParseMode.MARKDOWN)
     else:
-        selected_messages = random.sample(shayari_list, num_messages)
-
-    formatted_messages = [format_message(message, "Shayari") for message in selected_messages]
-    for formatted_message in formatted_messages:
-        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
-
-    spamming_process = None  # Reset the spamming process after completion
+        update.message.reply_text("No active spamming process.", parse_mode=ParseMode.MARKDOWN)
 
 def joke(update: Update, context: CallbackContext) -> None:
-    global spamming_process
-
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/joke <number>`.")
@@ -58,17 +65,13 @@ def joke(update: Update, context: CallbackContext) -> None:
     except ValueError:
         update.message.reply_text("Please enter a valid number.")
 
-    total_jokes = len(jokes_list)
-    if num_jokes >= total_jokes:
-        selected_jokes = jokes_list * (num_jokes // total_jokes) + random.sample(jokes_list, num_jokes % total_jokes)
-    else:
-        selected_jokes = random.sample(jokes_list, num_jokes)
+    global spamming_process
+    if spamming_process and spamming_process.is_alive():
+        update.message.reply_text("Spamming process is already running. Use `/sstop` to stop the current process.")
+        return
 
-    formatted_jokes = [format_message(joke, "Joke") for joke in selected_jokes]
-    for formatted_joke in formatted_jokes:
-        update.message.reply_text(formatted_joke, parse_mode=ParseMode.MARKDOWN)
-
-    spamming_process = None  # Reset the spamming process after completion
+    spamming_process = threading.Thread(target=spam_messages, args=(update, context, jokes_list, "Joke", num_jokes))
+    spamming_process.start()
 
 def gana(update: Update, context: CallbackContext) -> None:
     args = context.args
@@ -82,8 +85,6 @@ def gana(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(formatted_song, parse_mode=ParseMode.MARKDOWN)
 
 def mspam(update: Update, context: CallbackContext) -> None:
-    global spamming_process
-
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/mspam <number>`.")
@@ -99,21 +100,15 @@ def mspam(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Please enter a positive number.")
         return
 
-    total_messages = len(love_shayari)
-    if num_messages >= total_messages:
-        selected_messages = love_shayari * (num_messages // total_messages) + random.sample(love_shayari, num_messages % total_messages)
-    else:
-        selected_messages = random.sample(love_shayari, num_messages)
+    global spamming_process
+    if spamming_process and spamming_process.is_alive():
+        update.message.reply_text("Spamming process is already running. Use `/sstop` to stop the current process.")
+        return
 
-    formatted_love_shayari = [format_message(message, "Love Shayari") for message in selected_messages]
-    for formatted_message in formatted_love_shayari:
-        update.message.reply_text(formatted_message, parse_mode=ParseMode.MARKDOWN)
-
-    spamming_process = None  # Reset the spamming process after completion
+    spamming_process = threading.Thread(target=spam_messages, args=(update, context, love_shayari, "Love Shayari", num_messages))
+    spamming_process.start()
 
 def dialogue(update: Update, context: CallbackContext) -> None:
-    global spamming_process
-
     args = context.args
     if not args:
         update.message.reply_text("Please use the command in the format `/dialogue` or `/dialogues`.")
@@ -125,30 +120,15 @@ def dialogue(update: Update, context: CallbackContext) -> None:
     except ValueError:
         update.message.reply_text("Please enter a valid number.")
 
-    total_dialogues = len(dialogue_list)
-    if num_dialogues >= total_dialogues:
-        selected_dialogues = dialogue_list * (num_dialogues // total_dialogues) + random.sample(dialogue_list, num_dialogues % total_dialogues)
-    else:
-        selected_dialogues = random.sample(dialogue_list, num_dialogues)
-
-    formatted_dialogues = [format_message(dialogue, "Dialogue") for dialogue in selected_dialogues]
-    for formatted_dialogue in formatted_dialogues:
-        update.message.reply_text(formatted_dialogue, parse_mode=ParseMode.MARKDOWN)
-
-    spamming_process = None  # Reset the spamming process after completion
-
-def sstop(update: Update, context: CallbackContext) -> None:
     global spamming_process
+    if spamming_process and spamming_process.is_alive():
+        update.message.reply_text("Spamming process is already running. Use `/sstop` to stop the current process.")
+        return
 
-    if spamming_process:
-        spamming_process.stop()
-        update.message.reply_text("🛑 Spamming process stopped. 🛑", parse_mode=ParseMode.MARKDOWN)
-    else:
-        update.message.reply_text("No active spamming process.", parse_mode=ParseMode.MARKDOWN)
+    spamming_process = threading.Thread(target=spam_messages, args=(update, context, dialogue_list, "Dialogue", num_dialogues))
+    spamming_process.start()
 
 def main() -> None:
-    global spamming_process
-
     updater = Updater(os.environ.get("BOT_TOKEN"))  # BOT_TOKEN is set in the Heroku Config Vars
 
     dp = updater.dispatcher
@@ -158,7 +138,7 @@ def main() -> None:
     dp.add_handler(CommandHandler("mspam", mspam, pass_args=True))
     dp.add_handler(CommandHandler("dialogue", dialogue, pass_args=True))
     dp.add_handler(CommandHandler("dialogues", dialogue, pass_args=True))
-    dp.add_handler(CommandHandler("sstop", sstop))
+    dp.add_handler(CommandHandler("sstop", stop_spamming))
 
     updater.start_polling()
     updater.idle()
